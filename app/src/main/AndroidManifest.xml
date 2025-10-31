@@ -33,6 +33,9 @@
             android:name=".WebViewActivity"
             android:exported="false" />
         <activity
+            android:name=".CreateQrCodeActivity"
+            android:exported="false" />
+        <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"
             android:screenOrientation="fullSensor"
             tools:replace="screenOrientation" />
