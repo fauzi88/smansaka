@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
@@ -67,6 +68,7 @@ class WebViewActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val url = intent.getStringExtra("url") ?: "https://smansaka.sch.id"
 
         hideSystemBars()
@@ -206,7 +208,11 @@ fun WebPage(
                     containerColor = Color(0xFF154F17)
                 )
             ) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Refresh Page")
+                Icon(
+                    Icons.Filled.Refresh,
+                    contentDescription = "Refresh Page",
+                    tint = Color.White
+                )
             }
             IconButton(
                 onClick = { onShowExitDialogChange(true) },
@@ -214,7 +220,11 @@ fun WebPage(
                     containerColor = Color(0xFF881C27)
                 )
             ) {
-                Icon(Icons.Filled.Close, contentDescription = "Keluar")
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = "Keluar",
+                    tint = Color.White
+                )
             }
         }
 
@@ -224,21 +234,28 @@ fun WebPage(
                 icon = { Icon(Icons.Default.Warning, contentDescription = "Ikon Peringatan") },
                 title = { Text(text = "Konfirmasi Keluar") },
                 confirmButton = {
-                    Button(
-                        onClick = {
-                            onShowExitDialogChange(false)
-                            onExit()
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB00020)
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
-                        Text("Keluar")
-                    }
-                },
-                dismissButton = {
-                    Button(onClick = { onShowExitDialogChange(false) }) {
-                        Text("Batal")
+                        Button(
+                            onClick = { onShowExitDialogChange(false) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Batal")
+                        }
+                        Button(
+                            onClick = {
+                                onShowExitDialogChange(false)
+                                onExit()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFB00020)
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Keluar")
+                        }
                     }
                 }
             )
