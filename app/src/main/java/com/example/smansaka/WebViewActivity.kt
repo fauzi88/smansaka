@@ -127,7 +127,7 @@ fun WebPage(url: String, onExit: () -> Unit) {
     // Ganti atau tambahkan domain lain yang Anda percayai.
     val allowedDomains = listOf("smansaka.sch.id", "form.jotform.com", "google.com")
 
-    // State untuk menampilkan dialog konfirmasi keluar
+
     var showExitDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
