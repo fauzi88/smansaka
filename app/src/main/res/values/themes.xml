@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.Smansaka.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#AFC1D6</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Smansaka</item>
+    </style>
+
     <style name="Theme.Smansaka" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>
