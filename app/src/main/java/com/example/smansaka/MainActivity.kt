@@ -25,9 +25,17 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewModelScope
 import com.example.smansaka.ui.theme.SmansakaTheme
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,6 +59,59 @@ class MainActivity : ComponentActivity() {
                     DashboardScreen()
                 }
             }
+        }
+    }
+}
+
+class AnnouncementViewModel : ViewModel() {
+    private val _announcement = MutableStateFlow("Memuat pengumuman...")
+    val announcement: StateFlow<String> = _announcement
+
+    init {
+        viewModelScope.launch {
+            val db = Firebase.firestore
+            db.collection("pengumuman").document("penting")
+                .addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        _announcement.value = "Gagal memuat pengumuman."
+                        return@addSnapshotListener
+                    }
+
+                    if (snapshot != null && snapshot.exists()) {
+                        _announcement.value = snapshot.getString("teks") ?: "Tidak ada pengumuman."
+                    } else {
+                        _announcement.value = "Tidak ada pengumuman."
+                    }
+                }
+        }
+    }
+}
+
+@Composable
+fun AnnouncementCard(announcementViewModel: AnnouncementViewModel = viewModel()) {
+    val announcement by announcementViewModel.announcement.collectAsState()
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                text = "Pengumuman",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = announcement,
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -116,11 +177,10 @@ fun DashboardScreen() {
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            Text(
-                text = "Pilih salah satu menu di bawah ini untuk memulai.",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
+
+            AnnouncementCard()
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)

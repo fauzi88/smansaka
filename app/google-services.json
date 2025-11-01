@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "527253509707",
+    "project_id": "smansaka-app",
+    "storage_bucket": "smansaka-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:527253509707:android:6389d45bec71e8d21a9fce",
+        "android_client_info": {
+          "package_name": "com.example.smansaka"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-WMbkOjzAPnjhcD7net0q-WX444_K8cU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
