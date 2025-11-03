@@ -214,7 +214,7 @@ fun DashboardScreen() {
                     MenuCard(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
                         title = "Hasil Ujian",
-                        subtitle = "Lihat daftar hasil ujian siswa",
+                        subtitle = "Hasil ujian siswa",
                         backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
                         onClick = { println("Hasil Ujian diklik") }
                     )
