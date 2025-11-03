@@ -19,6 +19,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Smansaka" >
         <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
@@ -34,6 +37,9 @@
             android:exported="false" />
         <activity
             android:name=".CreateQrCodeActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AdminActivity"
             android:exported="false" />
         <activity
             android:name="com.journeyapps.barcodescanner.CaptureActivity"

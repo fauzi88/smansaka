@@ -11,10 +11,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
-import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -54,7 +55,7 @@ class MainActivity : ComponentActivity() {
             SmansakaTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color.White
                 ) {
                     DashboardScreen()
                 }
@@ -116,6 +117,7 @@ fun AnnouncementCard(announcementViewModel: AnnouncementViewModel = viewModel())
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen() {
     val context = LocalContext.current
@@ -155,7 +157,21 @@ fun DashboardScreen() {
     }
 
     Scaffold(
-        topBar = { }
+        topBar = {
+            TopAppBar(
+                title = { Text("Dashboard") },
+                actions = {
+                    IconButton(onClick = {
+                        context.startActivity(Intent(context, LoginActivity::class.java))
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.AdminPanelSettings,
+                            contentDescription = "Admin Login"
+                        )
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -164,19 +180,11 @@ fun DashboardScreen() {
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Text(
-                text = "Dashboard",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            Text(
                 text = "Selamat Datang!",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-
 
             AnnouncementCard()
 
@@ -200,26 +208,12 @@ fun DashboardScreen() {
                     Spacer(modifier = Modifier.width(16.dp))
 
                     MenuCard(
-                        icon = Icons.Filled.GridView,
-                        title = "Buat QR Code",
-                        subtitle = "Buat kode unik untuk ujian baru",
-                        backgroundColor = Color(0xFF4CAF50).copy(alpha = 0.85f),
-                        onClick = { context.startActivity(Intent(context, CreateQrCodeActivity::class.java)) }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    MenuCard(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
                         title = "Hasil Ujian",
                         subtitle = "Hasil ujian siswa",
                         backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
                         onClick = { println("Hasil Ujian diklik") }
                     )
-
-                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
