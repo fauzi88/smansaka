@@ -11,10 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,11 +29,21 @@ import androidx.compose.ui.unit.sp
 import com.example.smansaka.ui.theme.SmansakaTheme
 
 class AdminActivity : ComponentActivity() {
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sessionManager = SessionManager(this)
+
         setContent {
             SmansakaTheme {
-                AdminDashboardScreen()
+                AdminDashboardScreen(onLogout = {
+                    sessionManager.logout()
+                    val intent = Intent(this, MainActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    startActivity(intent)
+                    finish()
+                })
             }
         }
     }
@@ -40,8 +51,19 @@ class AdminActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AdminDashboardScreen() {
+fun AdminDashboardScreen(onLogout: () -> Unit) {
     val context = LocalContext.current
+    var showLogoutDialog by remember { mutableStateOf(false) }
+
+    if (showLogoutDialog) {
+        LogoutConfirmationDialog(
+            onConfirm = {
+                showLogoutDialog = false
+                onLogout()
+            },
+            onDismiss = { showLogoutDialog = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -49,8 +71,14 @@ fun AdminDashboardScreen() {
                 title = { Text("Admin Dashboard") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = Color.White
-                )
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
+                ),
+                actions = {
+                    IconButton(onClick = { showLogoutDialog = true }) {
+                        Icon(Icons.Default.Logout, contentDescription = "Logout")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -98,6 +126,25 @@ fun AdminDashboardScreen() {
 }
 
 @Composable
+fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Konfirmasi Logout") },
+        text = { Text("Apakah Anda yakin ingin keluar?") },
+        confirmButton = {
+            Button(onClick = onConfirm) {
+                Text("Logout")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal")
+            }
+        }
+    )
+}
+
+@Composable
 fun AdminMenuCard(
     modifier: Modifier = Modifier,
     icon: ImageVector,
@@ -141,6 +188,6 @@ fun AdminMenuCard(
 @Composable
 fun AdminDashboardScreenPreview() {
     SmansakaTheme {
-        AdminDashboardScreen()
+        AdminDashboardScreen(onLogout = {})
     }
 }

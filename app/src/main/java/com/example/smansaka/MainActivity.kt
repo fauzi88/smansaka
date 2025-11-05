@@ -39,8 +39,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        sessionManager = SessionManager(this)
+
+        if (sessionManager.isLoggedIn) {
+            startActivity(Intent(this, AdminActivity::class.java))
+            finish()
+            return
+        }
 
         var keepSplashScreen = true
         installSplashScreen().setKeepOnScreenCondition {
@@ -49,7 +59,7 @@ class MainActivity : ComponentActivity() {
 
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             keepSplashScreen = false
-        }, 2000L)
+        }, 1000L)
 
         setContent {
             SmansakaTheme {
@@ -199,8 +209,8 @@ fun DashboardScreen() {
                 ) {
                     MenuCard(
                         icon = Icons.Filled.QrCodeScanner,
-                        title = "Scan Ujian",
-                        subtitle = "Mulai ujian dengan memindai QR code",
+                        title = "Mulai Ujian",
+                        subtitle = "Pindai QR code untuk memulai",
                         backgroundColor = Color(0xFF9C27B0).copy(alpha = 0.85f),
                         onClick = { startExamScan() }
                     )
@@ -210,7 +220,7 @@ fun DashboardScreen() {
                     MenuCard(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
                         title = "Jadwal Ujian",
-                        subtitle = "Jadwal ujian siswa",
+                        subtitle = "Lihat jadwal ujian",
                         backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
                         onClick = { context.startActivity(Intent(context, JadwalActivity::class.java)) }
                     )

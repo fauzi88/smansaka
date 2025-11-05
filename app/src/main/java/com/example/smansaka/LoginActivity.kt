@@ -1,13 +1,17 @@
 package com.example.smansaka
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
@@ -35,11 +39,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class LoginActivity : ComponentActivity() {
+    private lateinit var sessionManager: SessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sessionManager = SessionManager(this)
         setContent {
             SmansakaTheme {
-                LoginScreen()
+                LoginScreen(sessionManager = sessionManager)
             }
         }
     }
@@ -108,7 +115,10 @@ class LoginViewModel : ViewModel() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
+fun LoginScreen(
+    loginViewModel: LoginViewModel = viewModel(),
+    sessionManager: SessionManager
+) {
     val context = LocalContext.current
     val loginState by loginViewModel.loginState.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
@@ -117,9 +127,12 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
     LaunchedEffect(loginState) {
         when (val state = loginState) {
             is LoginUiState.Success -> {
+                sessionManager.isLoggedIn = true
                 Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
-                context.startActivity(Intent(context, AdminActivity::class.java))
-                loginViewModel.resetLoginState() // Reset state setelah navigasi
+                val intent = Intent(context, AdminActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                context.startActivity(intent)
+                (context as? Activity)?.finish()
             }
             is LoginUiState.Error -> {
                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
@@ -149,14 +162,15 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
+                    .padding(horizontal = 24.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 val isLoading = loginState is LoginUiState.Loading
 
                 Icon(
-                    imageVector = Icons.Default.Lock,
+                    imageVector = Icons.Filled.AdminPanelSettings,
                     contentDescription = "Login Icon",
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -239,6 +253,8 @@ fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
 @Composable
 fun LoginScreenPreview() {
     SmansakaTheme {
-        LoginScreen()
+        // Inisialisasi dummy SessionManager untuk preview
+        val context = LocalContext.current
+        LoginScreen(sessionManager = SessionManager(context))
     }
 }
