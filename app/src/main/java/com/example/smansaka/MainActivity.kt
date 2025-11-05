@@ -209,10 +209,10 @@ fun DashboardScreen() {
 
                     MenuCard(
                         icon = Icons.AutoMirrored.Filled.ListAlt,
-                        title = "Hasil Ujian",
-                        subtitle = "Hasil ujian siswa",
+                        title = "Jadwal Ujian",
+                        subtitle = "Jadwal ujian siswa",
                         backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
-                        onClick = { println("Hasil Ujian diklik") }
+                        onClick = { context.startActivity(Intent(context, JadwalActivity::class.java)) }
                     )
                 }
             }

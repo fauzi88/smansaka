@@ -2,35 +2,37 @@ package com.example.smansaka
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.smansaka.ui.theme.SmansakaTheme
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,134 +45,190 @@ class LoginActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun LoginScreen() {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val db = Firebase.firestore
+// Sealed interface untuk merepresentasikan status UI
+sealed interface LoginUiState {
+    object Idle : LoginUiState
+    object Loading : LoginUiState
+    object Success : LoginUiState
+    data class Error(val message: String) : LoginUiState
+}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface) // A clean background
-    ) {
-        Column(
+class LoginViewModel : ViewModel() {
+    var username by mutableStateOf("")
+    var password by mutableStateOf("")
+
+    private val _loginState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
+    val loginState: StateFlow<LoginUiState> = _loginState
+
+    fun onUsernameChange(newUsername: String) {
+        username = newUsername
+    }
+
+    fun onPasswordChange(newPassword: String) {
+        password = newPassword
+    }
+
+    fun login() {
+        if (username.isBlank() || password.isBlank()) {
+            _loginState.value = LoginUiState.Error("Username dan password tidak boleh kosong")
+            return
+        }
+
+        _loginState.value = LoginUiState.Loading
+
+        viewModelScope.launch {
+            val db = Firebase.firestore
+            db.collection("users")
+                .whereEqualTo("username", username.trim())
+                .limit(1)
+                .get()
+                .addOnSuccessListener { documents ->
+                    if (documents.isEmpty) {
+                        _loginState.value = LoginUiState.Error("Username tidak ditemukan")
+                    } else {
+                        val userDoc = documents.first()
+                        val storedPassword = userDoc.getString("password")
+                        if (storedPassword == password) {
+                            _loginState.value = LoginUiState.Success
+                        } else {
+                            _loginState.value = LoginUiState.Error("Password salah")
+                        }
+                    }
+                }
+                .addOnFailureListener { exception ->
+                    _loginState.value = LoginUiState.Error("Gagal terhubung: ${exception.message}")
+                }
+        }
+    }
+
+    fun resetLoginState() {
+        _loginState.value = LoginUiState.Idle
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginScreen(loginViewModel: LoginViewModel = viewModel()) {
+    val context = LocalContext.current
+    val loginState by loginViewModel.loginState.collectAsState()
+    var passwordVisible by remember { mutableStateOf(false) }
+
+    // Menangani efek samping dari perubahan state login (navigasi, toast)
+    LaunchedEffect(loginState) {
+        when (val state = loginState) {
+            is LoginUiState.Success -> {
+                Toast.makeText(context, "Login Berhasil!", Toast.LENGTH_SHORT).show()
+                context.startActivity(Intent(context, AdminActivity::class.java))
+                loginViewModel.resetLoginState() // Reset state setelah navigasi
+            }
+            is LoginUiState.Error -> {
+                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                loginViewModel.resetLoginState() // Reset state setelah menampilkan error
+            }
+            else -> { /* Idle atau Loading, tidak melakukan apa-apa */ }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Admin Login") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.White
+                )
+            )
+        }
+    ) { paddingValues ->
+        Surface(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(paddingValues),
+            color = MaterialTheme.colorScheme.background
         ) {
-            // App Logo/Icon
-            Icon(
-                imageVector = Icons.Filled.AdminPanelSettings,
-                contentDescription = "School Logo",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(100.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Title
-            Text(
-                text = "Admin Login",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Silakan login untuk melanjutkan",
-                fontSize = 16.sp,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Username Field
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Username Icon"
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Password Field
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Password") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "Password Icon"
-                    )
-                },
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Login Button
-            Button(
-                onClick = {
-                    if (username.isNotBlank() && password.isNotBlank()) {
-                        isLoading = true
-                        db.collection("users")
-                            .whereEqualTo("username", username)
-                            .whereEqualTo("password", password)
-                            .get()
-                            .addOnSuccessListener { documents ->
-                                isLoading = false
-                                if (documents.isEmpty) {
-                                    Toast.makeText(context, "Username atau password salah", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(context, "Login Admin Berhasil", Toast.LENGTH_SHORT).show()
-                                    val intent = Intent(context, CreateQrCodeActivity::class.java)
-                                    context.startActivity(intent)
-                                    (context as? ComponentActivity)?.finish()
-                                }
-                            }
-                            .addOnFailureListener { exception ->
-                                isLoading = false
-                                Log.e("LoginActivity", "Gagal login ke Firestore", exception)
-                                Toast.makeText(context, "Gagal login: ${exception.message}", Toast.LENGTH_SHORT).show()
-                            }
-                    } else {
-                        Toast.makeText(context, "Username dan password tidak boleh kosong", Toast.LENGTH_SHORT).show()
-                    }
-                },
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(65.dp)
-                    .shadow(6.dp, shape = RoundedCornerShape(14.dp)),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7B3FE4)),
-                shape = RoundedCornerShape(14.dp),
-                enabled = !isLoading
+                    .fillMaxSize()
+                    .padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(color = Color.White)
-                } else {
-                    Text(
-                        text = "LOGIN",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+                val isLoading = loginState is LoginUiState.Loading
+
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Login Icon",
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    "Selamat Datang, Admin",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Silakan masuk untuk melanjutkan",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                OutlinedTextField(
+                    value = loginViewModel.username,
+                    onValueChange = { loginViewModel.onUsernameChange(it) },
+                    label = { Text("Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = !isLoading,
+                    leadingIcon = { Icon(imageVector = Icons.Default.Person, contentDescription = "Username") }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = loginViewModel.password,
+                    onValueChange = { loginViewModel.onPasswordChange(it) },
+                    label = { Text("Password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    enabled = !isLoading,
+                    leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password") },
+                    trailingIcon = {
+                        val image = if (passwordVisible)
+                            Icons.Filled.Visibility
+                        else Icons.Filled.VisibilityOff
+
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(imageVector = image, "Toggle password visibility")
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = { loginViewModel.login() },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading,
+                    contentPadding = PaddingValues(vertical = 14.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text("Login")
+                    }
                 }
             }
         }
