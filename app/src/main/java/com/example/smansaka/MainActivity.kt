@@ -2,15 +2,19 @@ package com.example.smansaka
 
 import android.content.Intent
 import android.os.Bundle
+import android.webkit.WebView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
@@ -25,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -132,6 +137,7 @@ fun AnnouncementCard(announcementViewModel: AnnouncementViewModel = viewModel())
 fun DashboardScreen() {
     val context = LocalContext.current
     val qrCodePrefix = "SMANSAKA_EXAM_CODE:"
+    var showGoogleLoginWebView by remember { mutableStateOf(false) }
 
     val barcodeLauncher = rememberLauncherForActivityResult(
         contract = ScanContract(),
@@ -166,64 +172,100 @@ fun DashboardScreen() {
         barcodeLauncher.launch(options)
     }
 
+    BackHandler(enabled = showGoogleLoginWebView) {
+        showGoogleLoginWebView = false
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Dashboard") },
+                title = { Text(if (showGoogleLoginWebView) "Login Akun Google" else "Dashboard") },
+                navigationIcon = {
+                    if (showGoogleLoginWebView) {
+                        IconButton(onClick = { showGoogleLoginWebView = false }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Kembali")
+                        }
+                    }
+                },
                 actions = {
-                    IconButton(onClick = {
-                        context.startActivity(Intent(context, LoginActivity::class.java))
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.AdminPanelSettings,
-                            contentDescription = "Admin Login"
-                        )
+                    if (!showGoogleLoginWebView) {
+                        IconButton(onClick = {
+                            context.startActivity(Intent(context, LoginActivity::class.java))
+                        }) {
+                            Icon(
+                                imageVector = Icons.Filled.AdminPanelSettings,
+                                contentDescription = "Admin Login"
+                            )
+                        }
+                        IconButton(onClick = {
+                            showGoogleLoginWebView = true
+                        }) {
+                            // TODO: Replace with Google icon. You can add a drawable resource for the Google logo.
+                            Icon(
+                                imageVector = Icons.Filled.AccountCircle, // Placeholder icon
+                                contentDescription = "Google Login"
+                            )
+                        }
                     }
                 }
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-        ) {
-            Text(
-                text = "Selamat Datang!",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            AnnouncementCard()
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+        Box(modifier = Modifier.padding(innerPadding)) {
+            if (showGoogleLoginWebView) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            webViewClient = android.webkit.WebViewClient()
+                            loadUrl("https://accounts.google.com")
+                        }
+                    }
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
                 ) {
-                    MenuCard(
-                        icon = Icons.Filled.QrCodeScanner,
-                        title = "Mulai Ujian",
-                        subtitle = "Pindai QR code untuk memulai",
-                        backgroundColor = Color(0xFF9C27B0).copy(alpha = 0.85f),
-                        onClick = { startExamScan() }
+                    Text(
+                        text = "Selamat Datang!",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
 
-                    Spacer(modifier = Modifier.width(16.dp))
+                    AnnouncementCard()
 
-                    MenuCard(
-                        icon = Icons.AutoMirrored.Filled.ListAlt,
-                        title = "Jadwal Ujian",
-                        subtitle = "Lihat jadwal ujian",
-                        backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
-                        onClick = { context.startActivity(Intent(context, JadwalActivity::class.java)) }
-                    )
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            MenuCard(
+                                icon = Icons.Filled.QrCodeScanner,
+                                title = "Mulai Ujian",
+                                subtitle = "Pindai QR code untuk memulai",
+                                backgroundColor = Color(0xFF9C27B0).copy(alpha = 0.85f),
+                                onClick = { startExamScan() }
+                            )
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            MenuCard(
+                                icon = Icons.AutoMirrored.Filled.ListAlt,
+                                title = "Jadwal Ujian",
+                                subtitle = "Lihat jadwal ujian",
+                                backgroundColor = Color(0xFF2196F3).copy(alpha = 0.85f),
+                                onClick = { context.startActivity(Intent(context, JadwalActivity::class.java)) }
+                            )
+                        }
+                    }
                 }
             }
         }
